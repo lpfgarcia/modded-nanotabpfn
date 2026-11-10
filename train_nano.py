@@ -131,8 +131,18 @@ print0(f"host: {socket.gethostname()}")
 print0(f"platform: {platform.platform()}")
 print0(f"python: {sys.version}")
 print0(f"torch: {torch.version.__version__}")
-print0(f"cuda: {torch.version.cuda}")
-print0(subprocess.run(["nvidia-smi"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True).stdout)
+if torch.version.hip:
+    print0(f"hip: {torch.version.hip}")
+else:
+    print0(f"cuda: {torch.version.cuda}")
+for i in range(torch.cuda.device_count()):
+    p = torch.cuda.get_device_properties(i)
+    print0(f"gpu {i}: {p.name} {getattr(p, 'gcnArchName', '')} ({p.total_memory / 2**30:.1f} GiB)")
+import shutil
+for cmd in (["nvidia-smi"], ["amd-smi", "list"], ["rocm-smi"]):
+    if shutil.which(cmd[0]):
+        print0(subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True).stdout)
+        break
 cpu = next(l.split(":")[1].strip() for l in open("/proc/cpuinfo") if l.startswith("model name"))
 print0(f"cpu: {cpu} ({len(os.sched_getaffinity(0))} cores)")
 print0("=" * 100)
